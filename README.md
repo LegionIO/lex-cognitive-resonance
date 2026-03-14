@@ -1,37 +1,58 @@
 # lex-cognitive-resonance
 
-Adaptive Resonance Theory (ART) for brain-modeled agentic AI. Models how input patterns match against stored category prototypes through a bidirectional resonance cycle.
+A LegionIO cognitive architecture extension that models pattern recognition using Adaptive Resonance Theory (ART). Input vectors either resonate with known categories or create new ones, controlled by a vigilance parameter that sets the discrimination threshold.
 
-## Installation
+## What It Does
 
-Add to your Gemfile:
+Maintains a registry of **categories**, each represented as a prototype float vector. When a new input is presented:
 
-```ruby
-gem 'lex-cognitive-resonance'
-```
+- If it matches an existing category above the vigilance threshold, the prototype is updated toward the input (learning)
+- If no category meets the threshold, a new category is created (novelty detection)
+
+The vigilance parameter controls granularity: high vigilance produces many narrow categories; low vigilance produces fewer, broader ones.
 
 ## Usage
 
 ```ruby
+require 'lex-cognitive-resonance'
+
 client = Legion::Extensions::CognitiveResonance::Client.new
 
-# Present an input pattern — creates or updates a category
-result = client.present_input(input: [0.8, 0.6, 0.4])
-# => { success: true, outcome: :new_category, category_id: "uuid", quality: 0.0, label: :new, created: true }
+# Present an input vector (normalized 0.0..1.0 floats)
+result = client.present_input(input: [0.8, 0.6, 0.4, 0.9])
+# => { success: true, outcome: :new_category, category_id: "uuid...", quality: 0.0, label: :new, created: true }
 
-# Present again — resonates with existing category
-result = client.present_input(input: [0.8, 0.6, 0.4])
-# => { success: true, outcome: :resonance, category_id: "uuid", quality: 0.99, label: :perfect, created: false }
+# Present a similar input — resonates with the existing category
+result = client.present_input(input: [0.75, 0.65, 0.45, 0.85])
+# => { success: true, outcome: :resonance, category_id: "uuid...", quality: 0.94, label: :perfect, created: false }
 
-# Classify without learning
-result = client.classify(input: [0.7, 0.5, 0.3])
-# => { success: true, found: true, category_id: "uuid", quality: 0.97, label: :perfect }
+# Classify without modifying state
+result = client.classify(input: [0.8, 0.6, 0.4, 0.9])
+# => { success: true, found: true, category_id: "uuid...", quality: 0.99, label: :perfect }
 
-# Adjust vigilance (higher = more categories, finer distinctions)
+# Tighten vigilance for finer discrimination
 client.adjust_vigilance(amount: 0.1)
+# => { success: true, vigilance: 0.8, vigilance_label: :medium, adjustment: 0.1 }
 
-# Get a full report
+# Full report
 client.resonance_report
+# => { success: true, category_count: 3, vigilance: 0.8, vigilance_label: :medium, categories: [...] }
+
+# How many categories exist
+client.category_count
+# => { success: true, count: 3 }
+
+# Reset the engine (clears all categories)
+client.reset_engine
+# => { success: true, reset: true }
+```
+
+## Development
+
+```bash
+bundle install
+bundle exec rspec
+bundle exec rubocop
 ```
 
 ## License
