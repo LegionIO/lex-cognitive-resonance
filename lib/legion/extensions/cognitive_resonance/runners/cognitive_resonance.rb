@@ -5,7 +5,6 @@ module Legion
     module CognitiveResonance
       module Runners
         module CognitiveResonance
-          include Helpers::Constants
           include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
                                                       Legion::Extensions::Helpers.const_defined?(:Lex)
 
@@ -27,7 +26,7 @@ module Legion
             match = resonance_engine.best_match(normalized)
 
             if match
-              quality_label = Constants.match_label(match[:quality])
+              quality_label = Helpers::Constants.match_label(match[:quality])
               Legion::Logging.debug "[cognitive_resonance] classify category=#{match[:id][0..7]} " \
                                     "quality=#{match[:quality].round(3)} label=#{quality_label}"
               {
@@ -47,7 +46,7 @@ module Legion
             resonance_engine = engine || default_engine
             clamped_amount   = amount.to_f.clamp(-1.0, 1.0)
             new_vigilance    = resonance_engine.adjust_vigilance(amount: clamped_amount)
-            vigilance_label  = Constants.vigilance_label(new_vigilance)
+            vigilance_label  = Helpers::Constants.vigilance_label(new_vigilance)
 
             Legion::Logging.debug "[cognitive_resonance] vigilance=#{new_vigilance.round(3)} label=#{vigilance_label}"
             {

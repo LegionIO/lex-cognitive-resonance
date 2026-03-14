@@ -14,38 +14,12 @@ module Legion
 
           def present_input(input:)
             normalized = input.map { |v| v.to_f.clamp(0.0, 1.0) }
-
-            match = best_match(normalized)
+            match      = best_match(normalized)
 
             if match && match[:quality] >= @vigilance
-              category = @categories[match[:id]]
-              category.update_prototype!(input: normalized)
-
-              Legion::Logging.debug "[cognitive_resonance] resonance with category #{match[:id][0..7]} " \
-                                    "quality=#{match[:quality].round(3)} vigilance=#{@vigilance.round(3)}"
-
-              {
-                outcome:     :resonance,
-                category_id: match[:id],
-                quality:     match[:quality],
-                label:       Constants.match_label(match[:quality]),
-                created:     false
-              }
+              resonate_with(match, normalized)
             else
-              prune_if_full!
-              category = Category.new(prototype: normalized)
-              @categories[category.id] = category
-
-              Legion::Logging.debug "[cognitive_resonance] new category #{category.id[0..7]} " \
-                                    "total=#{@categories.size} vigilance=#{@vigilance.round(3)}"
-
-              {
-                outcome:     :new_category,
-                category_id: category.id,
-                quality:     match ? match[:quality] : 0.0,
-                label:       :new,
-                created:     true
-              }
+              create_category(normalized, prior_match: match)
             end
           end
 
@@ -93,6 +67,35 @@ module Legion
           end
 
           private
+
+          def resonate_with(match, normalized)
+            category = @categories[match[:id]]
+            category.update_prototype!(input: normalized)
+            Legion::Logging.debug "[cognitive_resonance] resonance with category #{match[:id][0..7]} " \
+                                  "quality=#{match[:quality].round(3)} vigilance=#{@vigilance.round(3)}"
+            {
+              outcome:     :resonance,
+              category_id: match[:id],
+              quality:     match[:quality],
+              label:       Constants.match_label(match[:quality]),
+              created:     false
+            }
+          end
+
+          def create_category(normalized, prior_match: nil)
+            prune_if_full!
+            category = Category.new(prototype: normalized)
+            @categories[category.id] = category
+            Legion::Logging.debug "[cognitive_resonance] new category #{category.id[0..7]} " \
+                                  "total=#{@categories.size} vigilance=#{@vigilance.round(3)}"
+            {
+              outcome:     :new_category,
+              category_id: category.id,
+              quality:     prior_match ? prior_match[:quality] : 0.0,
+              label:       :new,
+              created:     true
+            }
+          end
 
           def prune_if_full!
             return unless @categories.size >= Constants::MAX_CATEGORIES
